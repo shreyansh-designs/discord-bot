@@ -1,12 +1,21 @@
+import os
 import discord
 from discord.ext import commands
 from discord.ui import View, Button
+from dotenv import load_dotenv
 
 # ======================================================
-# BOT TOKEN
+# LOAD ENV
 # ======================================================
 
-TOKEN = "TOKEN"
+load_dotenv()
+
+TOKEN = os.getenv("TOKEN")
+
+if not TOKEN:
+    raise ValueError(
+        "❌ TOKEN missing in .env or Railway Variables"
+    )
 
 # ======================================================
 # INTENTS
@@ -15,6 +24,7 @@ TOKEN = "TOKEN"
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.guilds = True
 
 # ======================================================
 # BOT SETUP
@@ -22,7 +32,9 @@ intents.members = True
 
 bot = commands.Bot(
     command_prefix="!",
-    intents=intents
+    intents=intents,
+    help_command=None,
+    case_insensitive=True
 )
 
 # ======================================================
@@ -39,11 +51,28 @@ MEMBER_ROLE = "✅ Member"
 @bot.event
 async def on_ready():
 
+    print("=" * 50)
     print(f"✅ Logged in as {bot.user}")
+    print(f"✅ Bot ID: {bot.user.id}")
+    print(f"✅ Servers: {len(bot.guilds)}")
+    print("✅ Onboarding System Active")
+    print("=" * 50)
 
-    # Persistent Views
-    bot.add_view(RulesView())
-    bot.add_view(InterestView())
+    try:
+
+        await bot.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name="New Members Joining 🚀"
+            )
+        )
+
+        # Persistent views
+        bot.add_view(RulesView())
+        bot.add_view(InterestView())
+
+    except Exception as e:
+        print(f"❌ Presence/View Error: {e}")
 
 # ======================================================
 # MEMBER JOIN EVENT
@@ -54,36 +83,46 @@ async def on_member_join(member):
 
     guild = member.guild
 
-    # Add New Joiner Role
-    new_role = discord.utils.get(
-        guild.roles,
-        name=NEW_JOINER_ROLE
-    )
-
-    if new_role:
-        await member.add_roles(new_role)
-
-    # Send Welcome DM
     try:
 
+        # Add new joiner role
+        new_role = discord.utils.get(
+            guild.roles,
+            name=NEW_JOINER_ROLE
+        )
+
+        if new_role:
+            await member.add_roles(new_role)
+
+        # DM Welcome
         embed = discord.Embed(
-            title="🌱 Welcome!",
+            title="🚀 Welcome to the Community",
             description=(
-                f"Hey {member.name} 👋\n\n"
-                "Welcome to the community.\n\n"
-                "Please complete onboarding:\n\n"
+                f"Hey {member.mention} 👋\n\n"
+                "Complete onboarding:\n\n"
                 "✅ Read rules\n"
                 "✅ Select interests\n"
                 "✅ Unlock channels\n\n"
-                "Enjoy 🚀"
+                "Enjoy your journey 🚀"
             ),
             color=discord.Color.green()
         )
 
+        embed.add_field(
+            name="📚 Popular Topics",
+            value=(
+                "🛡️ Cybersecurity\n"
+                "🤖 AI/ML\n"
+                "💻 Programming\n"
+                "🚀 Startups"
+            ),
+            inline=False
+        )
+
         await member.send(embed=embed)
 
-    except:
-        print("❌ Could not send DM")
+    except Exception as e:
+        print(f"❌ Join Error: {e}")
 
 # ======================================================
 # RULES VIEW
@@ -106,20 +145,25 @@ class RulesView(View):
         button: Button
     ):
 
-        embed = discord.Embed(
-            title="🎯 Choose Your Interests",
-            description=(
-                "Select your interests below.\n"
-                "You can choose multiple roles."
-            ),
-            color=discord.Color.blurple()
-        )
+        try:
 
-        await interaction.response.send_message(
-            embed=embed,
-            view=InterestView(),
-            ephemeral=True
-        )
+            embed = discord.Embed(
+                title="🎯 Choose Your Interests",
+                description=(
+                    "Select your interests below.\n"
+                    "You can select multiple roles."
+                ),
+                color=discord.Color.blurple()
+            )
+
+            await interaction.response.send_message(
+                embed=embed,
+                view=InterestView(),
+                ephemeral=True
+            )
+
+        except Exception as e:
+            print(f"❌ Rules Button Error: {e}")
 
 # ======================================================
 # INTEREST VIEW
@@ -132,48 +176,54 @@ class InterestView(View):
 
     async def toggle_role(self, interaction, role_name):
 
-        guild = interaction.guild
-        member = interaction.user
+        try:
 
-        role = discord.utils.get(
-            guild.roles,
-            name=role_name
-        )
+            guild = interaction.guild
+            member = interaction.user
 
-        if role is None:
-            return f"❌ Role '{role_name}' not found"
+            role = discord.utils.get(
+                guild.roles,
+                name=role_name
+            )
 
-        # Remove Role if already exists
-        if role in member.roles:
+            if role is None:
+                return f"❌ Role '{role_name}' not found."
 
-            await member.remove_roles(role)
+            # Remove role if already exists
+            if role in member.roles:
 
-            return f"❌ Removed {role_name}"
+                await member.remove_roles(role)
 
-        # Add Role
-        else:
+                return f"❌ Removed {role_name}"
 
+            # Add role
             await member.add_roles(role)
 
-        # Remove New Joiner Role
-        new_joiner = discord.utils.get(
-            guild.roles,
-            name=NEW_JOINER_ROLE
-        )
+            # Remove new joiner role
+            new_joiner = discord.utils.get(
+                guild.roles,
+                name=NEW_JOINER_ROLE
+            )
 
-        if new_joiner and new_joiner in member.roles:
-            await member.remove_roles(new_joiner)
+            if new_joiner and new_joiner in member.roles:
+                await member.remove_roles(new_joiner)
 
-        # Add Member Role
-        member_role = discord.utils.get(
-            guild.roles,
-            name=MEMBER_ROLE
-        )
+            # Add member role
+            member_role = discord.utils.get(
+                guild.roles,
+                name=MEMBER_ROLE
+            )
 
-        if member_role:
-            await member.add_roles(member_role)
+            if member_role:
+                await member.add_roles(member_role)
 
-        return f"✅ Added {role_name}"
+            return f"✅ Added {role_name}"
+
+        except Exception as e:
+
+            print(f"❌ Role Toggle Error: {e}")
+
+            return "⚠️ Something went wrong."
 
     # ==================================================
     # BUTTONS
@@ -322,18 +372,37 @@ async def helpme(ctx):
 # ERROR HANDLER
 # ======================================================
 
-@setup.error
+@bot.event
+async def on_command_error(ctx, error):
 
-async def setup_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
 
-    if isinstance(error, commands.MissingPermissions):
-
-        await ctx.send(
-            "❌ You need Administrator permission to use this command."
+        return await ctx.send(
+            "❌ Unknown command."
         )
+
+    elif isinstance(error, commands.MissingPermissions):
+
+        return await ctx.send(
+            "❌ Missing permissions."
+        )
+
+    else:
+
+        print(f"❌ Command Error: {error}")
 
 # ======================================================
 # RUN BOT
 # ======================================================
 
-bot.run(TOKEN)
+try:
+
+    bot.run(TOKEN)
+
+except discord.LoginFailure:
+
+    print("❌ Invalid Discord Token")
+
+except Exception as e:
+
+    print(f"❌ Fatal Error: {e}")

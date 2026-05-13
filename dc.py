@@ -1,261 +1,308 @@
+import os
 import discord
+
 from discord.ext import commands
 from discord.ui import View, Button
 
-# ==========================================
+# =========================================================
 # CONFIG
-# ==========================================
+# =========================================================
 
-DISCORD_BOT_TOKEN = "DISCORD_BOT_TOKEN"
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
-# ==========================================
-# OPENAI CLIENT
-# ==========================================
-
-# ==========================================
+# =========================================================
 # DISCORD BOT SETUP
-# ==========================================
+# =========================================================
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(
+    command_prefix="!",
+    intents=intents
+)
 
-# ==========================================
-# ROLE NAMES
-# ==========================================
+# =========================================================
+# ROLE CONFIG
+# =========================================================
 
-NEW_JOINER_ROLE = "New Joiner"
-MEMBER_ROLE = "Member"
+NEW_JOINER_ROLE = "🌱 New Joiner"
+MEMBER_ROLE = "✅ Member"
 
-INTEREST_ROLES = {
-    "Tech": "💻 Tech",
-    "AI/ML": "🤖 AI/ML",
-    "Startups": "🚀 Startups",
-    "Psychology": "🧠 Psychology",
-    "Markets": "📈 Markets"
-}
-
-# ==========================================
+# =========================================================
 # BOT READY
-# ==========================================
+# =========================================================
 
 @bot.event
 async def on_ready():
-    print(f"✅ Builder Guide is online as {bot.user}")
 
-# ==========================================
-# NEW MEMBER JOIN
-# ==========================================
+    print(f"✅ Bot Online: {bot.user}")
+
+    # Persistent Views
+    bot.add_view(RulesView())
+    bot.add_view(InterestView())
+
+# =========================================================
+# MEMBER JOIN EVENT
+# =========================================================
 
 @bot.event
 async def on_member_join(member):
 
     guild = member.guild
 
-    # Get New Joiner role
-    new_joiner_role = discord.utils.get(guild.roles, name=NEW_JOINER_ROLE)
+    # Add New Joiner Role
+    new_joiner_role = discord.utils.get(
+        guild.roles,
+        name=NEW_JOINER_ROLE
+    )
 
     if new_joiner_role:
         await member.add_roles(new_joiner_role)
 
-    # Send welcome DM
+    # Welcome DM
     try:
-        await member.send(
-            f"""
-🌱 Welcome to {guild.name}!
 
-Please complete onboarding:
-
-1️⃣ Read the rules
-2️⃣ Select your interests
-3️⃣ Unlock community access
-
-Enjoy your journey 🚀
-"""
+        embed = discord.Embed(
+            title="🌱 Welcome to the Community!",
+            description=(
+                f"Hey {member.name} 👋\n\n"
+                "Complete onboarding to unlock access.\n\n"
+                "✅ Read Rules\n"
+                "✅ Select Interests\n"
+                "✅ Become a Member\n\n"
+                "Enjoy your stay 🚀"
+            ),
+            color=discord.Color.green()
         )
-    except:
-        print("Could not send DM")
 
-# ==========================================
-# RULES COMMAND
-# ==========================================
+        await member.send(embed=embed)
+
+    except:
+        print("❌ Could not DM user")
+
+# =========================================================
+# RULES VIEW
+# =========================================================
 
 class RulesView(View):
 
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="✅ I Agree", style=discord.ButtonStyle.green)
-    async def agree_button(self, interaction: discord.Interaction, button: Button):
+    @discord.ui.button(
+        label="✅ I Agree",
+        style=discord.ButtonStyle.success,
+        custom_id="agree_rules"
+    )
+    async def agree_button(self, interaction, button):
 
-        member = interaction.user
-        guild = interaction.guild
+        embed = discord.Embed(
+            title="🎯 Select Your Interests",
+            description=(
+                "Choose your interests below.\n"
+                "You can select multiple roles."
+            ),
+            color=discord.Color.blurple()
+        )
 
         await interaction.response.send_message(
-            "✅ Rules accepted! Now select your interests below.",
+            embed=embed,
+            view=InterestView(),
             ephemeral=True
         )
 
-        # Send interests panel
-        embed = discord.Embed(
-            title="🎯 Select Your Interests",
-            description="Click the buttons below to unlock channels.",
-            color=discord.Color.blue()
-        )
-
-        await interaction.channel.send(
-            embed=embed,
-            view=InterestView()
-        )
-
-# ==========================================
-# INTEREST BUTTONS
-# ==========================================
+# =========================================================
+# INTEREST ROLE VIEW
+# =========================================================
 
 class InterestView(View):
 
     def __init__(self):
         super().__init__(timeout=None)
 
-    async def assign_role(self, interaction, role_name):
+    async def toggle_role(self, interaction, role_name):
 
         guild = interaction.guild
         member = interaction.user
 
-        role = discord.utils.get(guild.roles, name=role_name)
+        role = discord.utils.get(
+            guild.roles,
+            name=role_name
+        )
 
-        if role:
+        if not role:
+            return f"❌ Role '{role_name}' does not exist"
+
+        # Toggle Role
+        if role in member.roles:
+
+            await member.remove_roles(role)
+
+            return f"❌ Removed {role_name}"
+
+        else:
+
             await member.add_roles(role)
 
-        # Remove New Joiner role
-        new_joiner = discord.utils.get(guild.roles, name=NEW_JOINER_ROLE)
+        # Remove New Joiner
+        new_joiner = discord.utils.get(
+            guild.roles,
+            name=NEW_JOINER_ROLE
+        )
 
-        if new_joiner in member.roles:
+        if new_joiner and new_joiner in member.roles:
             await member.remove_roles(new_joiner)
 
-        # Add Member role
-        member_role = discord.utils.get(guild.roles, name=MEMBER_ROLE)
+        # Add Member Role
+        member_role = discord.utils.get(
+            guild.roles,
+            name=MEMBER_ROLE
+        )
 
         if member_role:
             await member.add_roles(member_role)
 
-    @discord.ui.button(label="💻 Tech", style=discord.ButtonStyle.primary)
-    async def tech_button(self, interaction: discord.Interaction, button: Button):
+        return f"✅ Added {role_name}"
 
-        await self.assign_role(interaction, "💻 Tech")
+    # =====================================================
+    # ROLE BUTTONS
+    # =====================================================
+
+    @discord.ui.button(
+        label="💻 Tech",
+        style=discord.ButtonStyle.primary,
+        custom_id="tech_btn"
+    )
+    async def tech_button(self, interaction, button):
+
+        msg = await self.toggle_role(
+            interaction,
+            "💻 Tech"
+        )
 
         await interaction.response.send_message(
-            "✅ Tech role assigned!",
+            msg,
             ephemeral=True
         )
 
-    @discord.ui.button(label="🤖 AI/ML", style=discord.ButtonStyle.success)
-    async def ai_button(self, interaction: discord.Interaction, button: Button):
+    @discord.ui.button(
+        label="🤖 AI/ML",
+        style=discord.ButtonStyle.success,
+        custom_id="aiml_btn"
+    )
+    async def ai_button(self, interaction, button):
 
-        await self.assign_role(interaction, "🤖 AI/ML")
+        msg = await self.toggle_role(
+            interaction,
+            "🤖 AI/ML"
+        )
 
         await interaction.response.send_message(
-            "✅ AI/ML role assigned!",
+            msg,
             ephemeral=True
         )
 
-    @discord.ui.button(label="🚀 Startups", style=discord.ButtonStyle.secondary)
-    async def startup_button(self, interaction: discord.Interaction, button: Button):
+    @discord.ui.button(
+        label="🛡️ Cyber Security",
+        style=discord.ButtonStyle.danger,
+        custom_id="cyber_btn"
+    )
+    async def cyber_button(self, interaction, button):
 
-        await self.assign_role(interaction, "🚀 Startups")
+        msg = await self.toggle_role(
+            interaction,
+            "🛡️ Cyber Security"
+        )
 
         await interaction.response.send_message(
-            "✅ Startups role assigned!",
+            msg,
             ephemeral=True
         )
 
-    @discord.ui.button(label="🧠 Psychology", style=discord.ButtonStyle.danger)
-    async def psychology_button(self, interaction: discord.Interaction, button: Button):
+    @discord.ui.button(
+        label="📈 Markets",
+        style=discord.ButtonStyle.secondary,
+        custom_id="markets_btn"
+    )
+    async def markets_button(self, interaction, button):
 
-        await self.assign_role(interaction, "🧠 Psychology")
+        msg = await self.toggle_role(
+            interaction,
+            "📈 Markets"
+        )
 
         await interaction.response.send_message(
-            "✅ Psychology role assigned!",
+            msg,
             ephemeral=True
         )
 
-    @discord.ui.button(label="📈 Markets", style=discord.ButtonStyle.primary)
-    async def markets_button(self, interaction: discord.Interaction, button: Button):
+    @discord.ui.button(
+        label="🚀 Startups",
+        style=discord.ButtonStyle.primary,
+        custom_id="startup_btn"
+    )
+    async def startup_button(self, interaction, button):
 
-        await self.assign_role(interaction, "📈 Markets")
+        msg = await self.toggle_role(
+            interaction,
+            "🚀 Startups"
+        )
 
         await interaction.response.send_message(
-            "✅ Markets role assigned!",
+            msg,
             ephemeral=True
         )
 
-# ==========================================
+# =========================================================
 # SETUP COMMAND
-# ==========================================
+# =========================================================
 
 @bot.command()
 @commands.has_permissions(administrator=True)
+
 async def setup(ctx):
 
     embed = discord.Embed(
         title="📜 Community Rules",
-        description="""
-Please read the rules carefully:
-
-• Respect everyone
-• No spam
-• No hate speech
-• Keep discussions valuable
-• Follow Discord ToS
-
-Click below to continue.
-""",
+        description=(
+            "Please follow the rules:\n\n"
+            "• Respect everyone\n"
+            "• No spam\n"
+            "• No hate speech\n"
+            "• Keep discussions meaningful\n"
+            "• Follow Discord ToS\n\n"
+            "Click below to continue onboarding."
+        ),
         color=discord.Color.green()
     )
 
-    await ctx.send(embed=embed, view=RulesView())
+    await ctx.send(
+        embed=embed,
+        view=RulesView()
+    )
 
-# ==========================================
-# AI CHAT COMMAND
-# ==========================================
+# =========================================================
+# HELP COMMAND
+# =========================================================
 
 @bot.command()
-async def ask(ctx, *, question):
+async def helpme(ctx):
 
-    thinking_message = await ctx.send("🤖 Thinking...")
+    embed = discord.Embed(
+        title="🤖 Available Commands",
+        description="""
+!setup → Start onboarding system
+!helpme → Show commands
+        """,
+        color=discord.Color.blurple()
+    )
 
-    try:
+    await ctx.send(embed=embed)
 
-        response = client_ai.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": """
-You are Builder Guide, a smart and friendly Discord community assistant.
-You help users with startups, AI, tech, psychology, productivity, and business discussions.
-Keep answers concise and beginner friendly.
-"""
-                },
-                {
-                    "role": "user",
-                    "content": question
-                }
-            ],
-            max_tokens=300
-        )
-
-        reply = response.choices[0].message.content
-
-        await thinking_message.edit(content=reply)
-
-    except Exception as e:
-        await thinking_message.edit(content=f"❌ Error: {e}")
-
-# ==========================================
+# =========================================================
 # RUN BOT
-# ==========================================
+# =========================================================
 
 bot.run(DISCORD_BOT_TOKEN)

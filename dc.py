@@ -14,7 +14,7 @@ load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
 if not TOKEN:
-    raise ValueError("❌ TOKEN missing in .env")
+    raise ValueError("❌ TOKEN missing")
 
 # ======================================================
 # INTENTS
@@ -46,15 +46,8 @@ async def on_ready():
 
     print("=" * 50)
     print(f"✅ Logged in as {bot.user}")
-    print("✅ Katalyst Bot Online")
+    print("✅ KATALYST ONLINE")
     print("=" * 50)
-
-    await bot.change_presence(
-        activity=discord.Activity(
-            type=discord.ActivityType.watching,
-            name="Community Growth 🚀"
-        )
-    )
 
 # ======================================================
 # LOAD COGS
@@ -74,12 +67,14 @@ async def load_cogs():
 
             await bot.load_extension(cog)
 
-            print(f"✅ Loaded {cog}")
+            print(f"✅ Loaded: {cog}")
 
         except Exception as e:
 
-            print(f"❌ Failed loading {cog}")
+            print("=" * 50)
+            print(f"❌ FAILED TO LOAD: {cog}")
             print(e)
+            print("=" * 50)
 
 # ======================================================
 # ERROR HANDLER
@@ -94,18 +89,12 @@ async def on_command_error(ctx, error):
             "❌ Unknown command."
         )
 
-    elif isinstance(error, commands.MissingPermissions):
-
-        await ctx.send(
-            "❌ Missing permissions."
-        )
-
     else:
 
         print(error)
 
 # ======================================================
-# START BOT
+# MAIN
 # ======================================================
 
 async def main():

@@ -1,55 +1,131 @@
 import discord
 from discord.ext import commands
-from discord.ui import View, Button
+from discord.ui import View
+import asyncio
+
+# ======================================================
+# ROLE CONFIG
+# ======================================================
 
 NEW_JOINER_ROLE = "🌱 New Joiner"
 MEMBER_ROLE = "✅ Member"
 
+INTEREST_ROLES = [
+    "💻 Programming",
+    "🤖 AI / ML",
+    "🛡️ Cybersecurity",
+    "🧠 Psychology",
+    "📈 Markets",
+    "🚀 Startups"
+]
+
+# ======================================================
+# INTEREST BUTTON VIEW
+# ======================================================
+
 class InterestView(View):
 
     def __init__(self):
+
         super().__init__(timeout=None)
 
-    async def toggle_role(self, interaction, role_name):
+    # ==================================================
+    # ROLE TOGGLE
+    # ==================================================
 
-        guild = interaction.guild
-        member = interaction.user
+    async def toggle_role(
+        self,
+        interaction,
+        role_name
+    ):
 
-        role = discord.utils.get(
-            guild.roles,
-            name=role_name
-        )
+        try:
 
-        if role is None:
-            return f"❌ Role '{role_name}' not found."
+            guild = interaction.guild
+            member = interaction.user
 
-        if role in member.roles:
+            role = discord.utils.get(
+                guild.roles,
+                name=role_name
+            )
 
-            await member.remove_roles(role)
+            if role is None:
 
-            return f"❌ Removed {role_name}"
+                return (
+                    f"❌ Role `{role_name}` "
+                    f"not found."
+                )
 
-        await member.add_roles(role)
+            # ==========================================
+            # REMOVE ROLE
+            # ==========================================
 
-        # Remove joiner role
-        joiner = discord.utils.get(
-            guild.roles,
-            name=NEW_JOINER_ROLE
-        )
+            if role in member.roles:
 
-        if joiner and joiner in member.roles:
-            await member.remove_roles(joiner)
+                await member.remove_roles(role)
 
-        # Add member role
-        member_role = discord.utils.get(
-            guild.roles,
-            name=MEMBER_ROLE
-        )
+                return (
+                    f"❌ Removed "
+                    f"`{role_name}`"
+                )
 
-        if member_role:
-            await member.add_roles(member_role)
+            # ==========================================
+            # ADD ROLE
+            # ==========================================
 
-        return f"✅ Added {role_name}"
+            await member.add_roles(role)
+
+            # ==========================================
+            # REMOVE NEW JOINER ROLE
+            # ==========================================
+
+            joiner_role = discord.utils.get(
+                guild.roles,
+                name=NEW_JOINER_ROLE
+            )
+
+            if (
+                joiner_role
+                and joiner_role in member.roles
+            ):
+
+                await member.remove_roles(
+                    joiner_role
+                )
+
+            # ==========================================
+            # ADD MEMBER ROLE
+            # ==========================================
+
+            member_role = discord.utils.get(
+                guild.roles,
+                name=MEMBER_ROLE
+            )
+
+            if member_role:
+
+                await member.add_roles(
+                    member_role
+                )
+
+            return (
+                f"✅ Added "
+                f"`{role_name}`"
+            )
+
+        except Exception as e:
+
+            print(
+                f"❌ Role Toggle Error: {e}"
+            )
+
+            return (
+                "⚠️ Something went wrong."
+            )
+
+    # ==================================================
+    # PROGRAMMING
+    # ==================================================
 
     @discord.ui.button(
         label="💻 Programming",
@@ -73,6 +149,10 @@ class InterestView(View):
             ephemeral=True
         )
 
+    # ==================================================
+    # AI / ML
+    # ==================================================
+
     @discord.ui.button(
         label="🤖 AI / ML",
         style=discord.ButtonStyle.success,
@@ -94,6 +174,10 @@ class InterestView(View):
             msg,
             ephemeral=True
         )
+
+    # ==================================================
+    # CYBERSECURITY
+    # ==================================================
 
     @discord.ui.button(
         label="🛡️ Cybersecurity",
@@ -117,15 +201,98 @@ class InterestView(View):
             ephemeral=True
         )
 
+    # ==================================================
+    # PSYCHOLOGY
+    # ==================================================
+
+    @discord.ui.button(
+        label="🧠 Psychology",
+        style=discord.ButtonStyle.secondary,
+        custom_id="psychology_btn"
+    )
+
+    async def psychology_button(
+        self,
+        interaction,
+        button
+    ):
+
+        msg = await self.toggle_role(
+            interaction,
+            "🧠 Psychology"
+        )
+
+        await interaction.response.send_message(
+            msg,
+            ephemeral=True
+        )
+
+    # ==================================================
+    # MARKETS
+    # ==================================================
+
+    @discord.ui.button(
+        label="📈 Markets",
+        style=discord.ButtonStyle.secondary,
+        custom_id="markets_btn"
+    )
+
+    async def markets_button(
+        self,
+        interaction,
+        button
+    ):
+
+        msg = await self.toggle_role(
+            interaction,
+            "📈 Markets"
+        )
+
+        await interaction.response.send_message(
+            msg,
+            ephemeral=True
+        )
+
+    # ==================================================
+    # STARTUPS
+    # ==================================================
+
+    @discord.ui.button(
+        label="🚀 Startups",
+        style=discord.ButtonStyle.secondary,
+        custom_id="startups_btn"
+    )
+
+    async def startups_button(
+        self,
+        interaction,
+        button
+    ):
+
+        msg = await self.toggle_role(
+            interaction,
+            "🚀 Startups"
+        )
+
+        await interaction.response.send_message(
+            msg,
+            ephemeral=True
+        )
+
+# ======================================================
+# RULES VIEW
+# ======================================================
+
 class RulesView(View):
 
     def __init__(self):
+
         super().__init__(timeout=None)
 
     @discord.ui.button(
         label="✅ I Agree",
         style=discord.ButtonStyle.success,
-        custom_id="agree_rules"
+        custom_id="agree_rules_btn"
     )
 
     async def agree_button(
@@ -134,19 +301,49 @@ class RulesView(View):
         button
     ):
 
-        embed = discord.Embed(
-            title="🎯 Choose Interests",
-            description=(
-                "Select interests below."
-            ),
-            color=discord.Color.blurple()
-        )
+        try:
 
-        await interaction.response.send_message(
-            embed=embed,
-            view=InterestView(),
-            ephemeral=True
-        )
+            embed = discord.Embed(
+                title="🎯 Choose Your Interests",
+                description=(
+                    "Select your interests below.\n\n"
+                    "You can choose multiple roles."
+                ),
+                color=discord.Color.blurple()
+            )
+
+            embed.add_field(
+                name="Available Interests",
+                value=(
+                    "💻 Programming\n"
+                    "🤖 AI / ML\n"
+                    "🛡️ Cybersecurity\n"
+                    "🧠 Psychology\n"
+                    "📈 Markets\n"
+                    "🚀 Startups"
+                ),
+                inline=False
+            )
+
+            embed.set_footer(
+                text="KATALYST Community System"
+            )
+
+            await interaction.response.send_message(
+                embed=embed,
+                view=InterestView(),
+                ephemeral=True
+            )
+
+        except Exception as e:
+
+            print(
+                f"❌ Rules Button Error: {e}"
+            )
+
+# ======================================================
+# ONBOARDING COG
+# ======================================================
 
 class Onboarding(commands.Cog):
 
@@ -154,41 +351,135 @@ class Onboarding(commands.Cog):
 
         self.bot = bot
 
-        self.bot.add_view(RulesView())
-        self.bot.add_view(InterestView())
+        # ==============================================
+        # PERSISTENT VIEWS
+        # ==============================================
 
-    @commands.Cog.listener()
-    async def on_member_join(self, member):
-
-        role = discord.utils.get(
-            member.guild.roles,
-            name=NEW_JOINER_ROLE
+        self.bot.add_view(
+            RulesView()
         )
 
-        if role:
-            await member.add_roles(role)
+        self.bot.add_view(
+            InterestView()
+        )
+
+    # ==================================================
+    # MEMBER JOIN EVENT
+    # ==================================================
+
+    @commands.Cog.listener()
+
+    async def on_member_join(
+        self,
+        member
+    ):
+
+        try:
+
+            role = discord.utils.get(
+                member.guild.roles,
+                name=NEW_JOINER_ROLE
+            )
+
+            if role:
+
+                await member.add_roles(role)
+
+            # ==========================================
+            # OPTIONAL WELCOME DM
+            # ==========================================
+
+            try:
+
+                await member.send(
+                    f"👋 Welcome to "
+                    f"**{member.guild.name}**!\n\n"
+                    f"Please read the rules "
+                    f"and choose interests."
+                )
+
+            except:
+
+                pass
+
+        except Exception as e:
+
+            print(
+                f"❌ Member Join Error: {e}"
+            )
+
+    # ==================================================
+    # SETUP COMMAND
+    # ==================================================
 
     @commands.command()
 
-    @commands.has_permissions(administrator=True)
+    @commands.has_permissions(
+        administrator=True
+    )
 
-    async def setup(self, ctx):
+    async def setup(
+        self,
+        ctx
+    ):
 
         embed = discord.Embed(
             title="📜 Rules & Etiquette",
             description=(
                 "✅ Respect everyone\n"
                 "✅ No spam\n"
-                "✅ No NSFW\n\n"
+                "✅ No NSFW\n"
+                "✅ No hate speech\n"
+                "✅ Be helpful\n\n"
                 "Click below to continue."
             ),
             color=discord.Color.green()
+        )
+
+        embed.add_field(
+            name="🌱 Onboarding",
+            value=(
+                "1. Read rules\n"
+                "2. Accept rules\n"
+                "3. Choose interests\n"
+                "4. Unlock community"
+            ),
+            inline=False
+        )
+
+        embed.set_footer(
+            text="KATALYST Community"
         )
 
         await ctx.send(
             embed=embed,
             view=RulesView()
         )
+
+    # ==================================================
+    # ROLES COMMAND
+    # ==================================================
+
+    @commands.command()
+
+    async def roles(
+        self,
+        ctx
+    ):
+
+        embed = discord.Embed(
+            title="🎭 Available Roles",
+            description=(
+                "\n".join(INTEREST_ROLES)
+            ),
+            color=discord.Color.orange()
+        )
+
+        await ctx.send(embed=embed)
+
+# ======================================================
+# SETUP
+# ======================================================
 
 async def setup(bot):
 

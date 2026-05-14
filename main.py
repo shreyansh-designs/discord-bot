@@ -107,9 +107,7 @@ async def on_guild_remove(guild):
 async def load_cogs():
 
     cogs = [
-        "cogs.utility",
-        "cogs.onboarding",
-        "cogs.leveling"
+        "cogs.utility"
     ]
 
     for cog in cogs:
@@ -122,10 +120,11 @@ async def load_cogs():
 
         except Exception as e:
 
-            print("=" * 60)
-            print(f"❌ Failed to load cog: {cog}")
+            print("=" * 50)
+            print(f"❌ FAILED: {cog}")
+            print(type(e))
             print(e)
-            print("=" * 60)
+            print("=" * 50)
 
 # ======================================================
 # BASIC STATUS COMMAND
